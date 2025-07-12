@@ -1,24 +1,43 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Home from './components/Home';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
+import AddBookmark from './components/AddBookmark';
+import LoadingSpinner from './components/LoadingSpinner';
 
 function App() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} />
+        <main className="container mx-auto px-4 py-8">
+          <Routes>
+            <Route path="/" element={<Home user={user} />} />
+            <Route 
+              path="/login" 
+              element={user ? <Navigate to="/dashboard" /> : <Login />} 
+            />
+            <Route 
+              path="/dashboard" 
+              element={user ? <Dashboard user={user} /> : <Navigate to="/login" />} 
+            />
+            <Route 
+              path="/add-bookmark" 
+              element={user ? <AddBookmark user={user} /> : <Navigate to="/login" />} 
+            />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 
