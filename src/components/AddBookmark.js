@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Calendar } from 'lucide-react';
+import { getAuthToken } from '../utils/getAuthToken';
 
 const AddBookmark = ({ user }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
+
+  const params = new URLSearchParams(location.search);
+
   const [formData, setFormData] = useState({
-    url: '',
-    title: '',
-    tag: '',
+    url: params.get('url') || '',
+    title: params.get('title') || '',
+    tag: params.get('tag') || '',
     remindAt: ''
   });
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -28,7 +34,12 @@ const AddBookmark = ({ user }) => {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
+
+      let remindAtUTC = formData.remindAt
+        ? new Date(new Date(formData.remindAt).getTime() - IST_OFFSET).toISOString()
+        : '';
+
       const response = await fetch('https://revisitly-backend.onrender.com/api/bookmarks/add', {
         method: 'POST',
         headers: {
@@ -37,6 +48,7 @@ const AddBookmark = ({ user }) => {
         },
         body: JSON.stringify({
           ...formData,
+          remindAt: remindAtUTC,
           tag: formData.tag ? formData.tag.split(',').map(tag => tag.trim()) : []
         }),
       });
@@ -64,10 +76,17 @@ const AddBookmark = ({ user }) => {
     }
   };
 
+  const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+
+  const getISTISOString = (date) => {
+    const ist = new Date(date.getTime() + IST_OFFSET);
+    return ist.toISOString().slice(0, 16);
+  }
+
   const getDefaultReminderTime = () => {
     const now = new Date();
     now.setHours(now.getHours() + 24); // Default to tomorrow
-    return now.toISOString().slice(0, 16);
+    return getISTISOString(now);
   };
 
   return (
@@ -168,7 +187,7 @@ const AddBookmark = ({ user }) => {
                 name="remindAt"
                 value={formData.remindAt}
                 onChange={handleInputChange}
-                min={new Date().toISOString().slice(0, 16)}
+                min={getISTISOString(new Date())}
                 className="input-field pl-10"
               />
             </div>

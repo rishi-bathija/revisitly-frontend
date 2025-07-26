@@ -16,10 +16,29 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    // Listen for Firebase Auth state changes
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const idToken = await firebaseUser.getIdToken();
+        setUser({
+          token: idToken,
+          name: firebaseUser.displayName,
+          email: firebaseUser.email,
+          profile: firebaseUser.photoURL
+        }); // Social login
+        setLoading(false);
+      } else {
+        // If not logged in with Firebase, check for JWT
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          setUser(JSON.parse(userStr)); // Credentials login
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();

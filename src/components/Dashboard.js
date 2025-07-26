@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, ExternalLink, Trash2, Clock, Search, Filter } from 'lucide-react';
+import { getAuthToken } from '../utils/getAuthToken';
 
 const Dashboard = ({ user }) => {
   const [bookmarks, setBookmarks] = useState([]);
@@ -9,20 +10,22 @@ const Dashboard = ({ user }) => {
   const [filterTag, setFilterTag] = useState('all');
   const [tags, setTags] = useState([]);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchBookmarks();
   }, []);
 
   const fetchBookmarks = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const response = await fetch('http://localhost:3001/api/bookmarks/get', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       const data = await response.json();
-      
+
       if (data.success) {
         setBookmarks(data.bookmarks);
         // Extract unique tags
@@ -41,14 +44,14 @@ const Dashboard = ({ user }) => {
     if (!window.confirm('Are you sure you want to delete this bookmark?')) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const response = await fetch(`http://localhost:3001/api/bookmarks/delete/${id}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         setBookmarks(bookmarks.filter(bookmark => bookmark._id !== id));
       }
@@ -59,7 +62,7 @@ const Dashboard = ({ user }) => {
 
   const filteredBookmarks = bookmarks.filter(bookmark => {
     const matchesSearch = bookmark.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         bookmark.url?.toLowerCase().includes(searchTerm.toLowerCase());
+      bookmark.url?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTag = filterTag === 'all' || bookmark.tag?.includes(filterTag);
     return matchesSearch && matchesTag;
   });
@@ -71,6 +74,15 @@ const Dashboard = ({ user }) => {
       </div>
     );
   }
+
+  const handleReschedule = (bookmark) => {
+    const params = new URLSearchParams();
+    params.set('url', bookmark.url);
+    params.set('title', bookmark.title || '');
+    params.set('tag', bookmark.tag.join(','));
+
+    navigate(`/add-bookmark?${params.toString()}`);
+  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -132,8 +144,8 @@ const Dashboard = ({ user }) => {
             {bookmarks.length === 0 ? 'No bookmarks yet' : 'No bookmarks found'}
           </h3>
           <p className="text-gray-600 mb-4">
-            {bookmarks.length === 0 
-              ? 'Start by adding your first bookmark!' 
+            {bookmarks.length === 0
+              ? 'Start by adding your first bookmark!'
               : 'Try adjusting your search or filter criteria.'
             }
           </p>
@@ -158,11 +170,11 @@ const Dashboard = ({ user }) => {
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-              
+
               <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                 {bookmark.url}
               </p>
-              
+
               {bookmark.tag && bookmark.tag.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
                   {bookmark.tag.map((tag, index) => (
@@ -175,7 +187,7 @@ const Dashboard = ({ user }) => {
                   ))}
                 </div>
               )}
-              
+
               <div className="flex justify-between items-center">
                 <a
                   href={bookmark.url}
@@ -192,6 +204,24 @@ const Dashboard = ({ user }) => {
                     {new Date(bookmark.createdAt).toLocaleDateString()}
                   </span>
                 </div>
+                <div className="flex items-center space-x-2 text-xs">
+                  <span
+                    className={`px-2 py-1 rounded-full ${bookmark.reminded ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}
+                  >
+                    {bookmark.reminded ? 'Sent' : 'Pending'}
+                  </span>
+
+                  {bookmark.reminded && (
+                    <button
+                      onClick={() => handleReschedule(bookmark)}
+                      className="text-primary-600 hover:text-primary-800 underline ml-2"
+                    >
+                      Remind Again?
+                    </button>
+                  )}
+                </div>
+
               </div>
             </div>
           ))}

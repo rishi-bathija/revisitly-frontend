@@ -18,21 +18,21 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
+        <Navbar />
         <main className="container mx-auto px-4 py-8">
           <Routes>
             <Route path="/" element={<Home user={user} />} />
-            <Route 
-              path="/login" 
-              element={user ? <Navigate to="/dashboard" /> : <Login />} 
+            <Route
+              path="/login"
+              element={user ? <Navigate to="/dashboard" /> : <Login />}
             />
-            <Route 
-              path="/dashboard" 
-              element={user ? <Dashboard user={user} /> : <Navigate to="/login" />} 
+            <Route
+              path="/dashboard"
+              element={user ? <Dashboard user={user} /> : <Navigate to="/login" />}
             />
-            <Route 
-              path="/add-bookmark" 
-              element={user ? <AddBookmark user={user} /> : <Navigate to="/login" />} 
+            <Route
+              path="/add-bookmark"
+              element={user ? <AddBookmark user={user} /> : <Navigate to="/login" />}
             />
           </Routes>
         </main>
