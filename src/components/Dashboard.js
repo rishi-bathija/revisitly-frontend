@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, ExternalLink, Trash2, Clock, Search, Filter } from 'lucide-react';
-import { getAuthToken } from '../utils/getAuthToken';
+import { getBookmarks, deleteBookmark } from '../utils/api';
 
 const Dashboard = ({ user }) => {
   const [bookmarks, setBookmarks] = useState([]);
@@ -14,17 +14,14 @@ const Dashboard = ({ user }) => {
 
   useEffect(() => {
     fetchBookmarks();
+    const interval = setInterval(fetchBookmarks, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchBookmarks = async () => {
     try {
-      const token = await getAuthToken();
-      const response = await fetch('http://localhost:3001/api/bookmarks/get', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
+      const data = await getBookmarks();
+      console.log('data', data);
 
       if (data.success) {
         setBookmarks(data.bookmarks);
@@ -44,15 +41,9 @@ const Dashboard = ({ user }) => {
     if (!window.confirm('Are you sure you want to delete this bookmark?')) return;
 
     try {
-      const token = await getAuthToken();
-      const response = await fetch(`http://localhost:3001/api/bookmarks/delete/${id}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const data = await deleteBookmark(id);
 
-      if (response.ok) {
+      if (data.success) {
         setBookmarks(bookmarks.filter(bookmark => bookmark._id !== id));
       }
     } catch (error) {

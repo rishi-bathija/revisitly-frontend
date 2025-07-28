@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Calendar } from 'lucide-react';
-import { getAuthToken } from '../utils/getAuthToken';
+import { addBookmark } from '../utils/api';
 
 const AddBookmark = ({ user }) => {
   const navigate = useNavigate();
@@ -34,26 +34,17 @@ const AddBookmark = ({ user }) => {
     setSuccess('');
 
     try {
-      const token = await getAuthToken();
-
       let remindAtUTC = formData.remindAt
         ? new Date(new Date(formData.remindAt).getTime() - IST_OFFSET).toISOString()
         : '';
 
-      const response = await fetch('https://revisitly-backend.onrender.com/api/bookmarks/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          remindAt: remindAtUTC,
-          tag: formData.tag ? formData.tag.split(',').map(tag => tag.trim()) : []
-        }),
-      });
+      const bookmarkData = {
+        ...formData,
+        remindAt: remindAtUTC,
+        tag: formData.tag ? formData.tag.split(',').map(tag => tag.trim()) : []
+      };
 
-      const data = await response.json();
+      const data = await addBookmark(bookmarkData);
 
       if (data.success) {
         setSuccess('Bookmark added successfully!');

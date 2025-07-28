@@ -4,6 +4,7 @@ import { auth } from '../utils/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { Mail, Lock, Eye, EyeOff, Bookmark } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { loginUser, signupUser, socialLogin } from '../utils/api';
 
 const Login = () => {
   const { setUser } = useAuth();
@@ -32,22 +33,17 @@ const Login = () => {
     setError('');
 
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
-      const response = await fetch(`http://localhost:3001${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
+      const data = isLogin
+        ? await loginUser(formData)
+        : await signupUser(formData);
 
       console.log('data', data);
 
       if (data.success) {
         // Store the token
         if (isLogin) {
+          console.log('islogin', isLogin);
+
           const userObj = {
             token: data.token,
             name: data.name,
@@ -85,15 +81,7 @@ const Login = () => {
 
       localStorage.setItem('token', idToken);
 
-      const response = await fetch('http://localhost:3001/api/auth/social-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken }),
-      });
-
-      const data = await response.json();
+      const data = await socialLogin(idToken);
 
       if (data.success) {
         setUser({
