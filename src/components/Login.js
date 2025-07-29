@@ -63,7 +63,7 @@ const Login = () => {
         setError(data.message || 'Authentication failed');
       }
     } catch (error) {
-      setError('Network error. Please try again.');
+      setError(error.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ const Login = () => {
         setError(data.message || 'Google login failed');
       }
     } catch (error) {
-      setError('Google login failed. Please try again.');
+      setError(error.message || 'Google login failed. Please try again.');
     } finally {
       setLoading(false);
     }

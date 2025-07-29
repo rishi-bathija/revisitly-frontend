@@ -62,6 +62,12 @@ export const addBookmark = (bookmarkData) =>
     body: JSON.stringify(bookmarkData),
   });
 
+export const updateBookmark = (bookmarkId, bookmarkData) =>
+  apiCall(`/api/bookmarks/update/${bookmarkId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(bookmarkData),
+  })
+
 export const deleteBookmark = (id) =>
   apiCall(`/api/bookmarks/delete/${id}`, {
     method: 'POST',

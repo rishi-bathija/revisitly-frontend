@@ -71,14 +71,15 @@ const Dashboard = ({ user }) => {
     params.set('url', bookmark.url);
     params.set('title', bookmark.title || '');
     params.set('tag', bookmark.tag.join(','));
+    params.set('id', bookmark._id);
 
     navigate(`/add-bookmark?${params.toString()}`);
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Your Bookmarks</h1>
           <p className="text-gray-600 mt-2">
@@ -87,7 +88,7 @@ const Dashboard = ({ user }) => {
         </div>
         <Link
           to="/add-bookmark"
-          className="btn-primary mt-4 sm:mt-0 flex items-center space-x-2"
+          className="btn-primary mt-4 sm:mt-0 flex items-center space-x-2 w-full sm:w-auto justify-center"
         >
           <Plus className="h-4 w-4" />
           <span>Add Bookmark</span>
@@ -104,15 +105,15 @@ const Dashboard = ({ user }) => {
               placeholder="Search bookmarks..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field pl-10"
+              className="input-field pl-10 w-full"
             />
           </div>
-          <div className="relative">
+          <div className="relative w-full sm:w-60">
             <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <select
               value={filterTag}
               onChange={(e) => setFilterTag(e.target.value)}
-              className="input-field pl-10"
+              className="input-field pl-10 w-full"
             >
               <option value="all">All Tags</option>
               {tags.map(tag => (
@@ -147,9 +148,9 @@ const Dashboard = ({ user }) => {
           )}
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {filteredBookmarks.map((bookmark) => (
-            <div key={bookmark._id} className="card hover:shadow-lg transition-shadow">
+            <div key={bookmark._id} className="card hover:shadow-lg transition-shadow flex flex-col h-full">
               <div className="flex justify-between items-start mb-3">
                 <h3 className="font-semibold text-gray-900 line-clamp-2">
                   {bookmark.title || 'Untitled'}

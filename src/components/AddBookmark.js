@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Calendar } from 'lucide-react';
-import { addBookmark } from '../utils/api';
+import { addBookmark, updateBookmark } from '../utils/api';
 
 const AddBookmark = ({ user }) => {
   const navigate = useNavigate();
@@ -16,6 +16,8 @@ const AddBookmark = ({ user }) => {
     tag: params.get('tag') || '',
     remindAt: ''
   });
+
+  const bookmarkId = params.get('id');
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -34,9 +36,7 @@ const AddBookmark = ({ user }) => {
     setSuccess('');
 
     try {
-      let remindAtUTC = formData.remindAt
-        ? new Date(new Date(formData.remindAt).getTime() - IST_OFFSET).toISOString()
-        : '';
+      let remindAtUTC = formData.remindAt ? new Date(formData.remindAt).toISOString() : '';
 
       const bookmarkData = {
         ...formData,
@@ -44,10 +44,17 @@ const AddBookmark = ({ user }) => {
         tag: formData.tag ? formData.tag.split(',').map(tag => tag.trim()) : []
       };
 
-      const data = await addBookmark(bookmarkData);
+      let data;
+
+      if (bookmarkId) {
+        data = await updateBookmark(bookmarkId, bookmarkData);
+      }
+      else {
+        data = await addBookmark(bookmarkData);
+      }
 
       if (data.success) {
-        setSuccess('Bookmark added successfully!');
+        setSuccess(bookmarkId ? 'Bookmark updated successfully!' : 'Bookmark added successfully!');
         setFormData({
           url: '',
           title: '',
