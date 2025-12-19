@@ -3,6 +3,8 @@ import { getAuthToken } from "./getAuthToken";
 const API_BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:5000';
 
 export const apiCall = async (endpoint, options = {}) => {
+  console.log('endpoint', endpoint);
+
   const token = await getAuthToken();
 
   const defaultHeaders = {

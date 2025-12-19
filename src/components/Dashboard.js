@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, ExternalLink, Trash2, Clock, Search, Filter } from 'lucide-react';
+import { Plus, ExternalLink, Trash2, Clock, Search, Filter, Edit, Bell } from 'lucide-react';
 import { getBookmarks, deleteBookmark } from '../utils/api';
 
 const Dashboard = ({ user }) => {
@@ -66,15 +66,37 @@ const Dashboard = ({ user }) => {
     );
   }
 
-  const handleReschedule = (bookmark) => {
+  console.log('filteredBookmarks', filteredBookmarks);
+
+  // Handle "Remind Again" - only updates reminder time
+  const handleRemindAgain = (bookmark) => {
     const params = new URLSearchParams();
     params.set('url', bookmark.url);
     params.set('title', bookmark.title || '');
-    params.set('tag', bookmark.tag.join(','));
+    params.set('tag', Array.isArray(bookmark.tag) ? bookmark.tag.join(',') : '');
     params.set('id', bookmark._id);
+    params.set('mode', 'remind'); // Special flag for remind mode
 
     navigate(`/add-bookmark?${params.toString()}`);
   };
+
+  // Handle "Edit Bookmark" - allows editing all fields
+  const handleEditBookmark = (bookmark) => {
+    console.log('bookmark', bookmark);
+
+    const params = new URLSearchParams();
+    params.set('url', bookmark.url);
+    params.set('title', bookmark.title || '');
+    params.set('tag', Array.isArray(bookmark.tag) ? bookmark.tag.join(',') : '');
+    params.set('id', bookmark._id);
+    params.set('mode', 'edit'); // Special flag for edit mode
+    params.set('remindAt', bookmark.remindAt ? new Date(bookmark.remindAt).toISOString() : '');
+    console.log('params', params);
+
+    navigate(`/add-bookmark?${params.toString()}`);
+  };
+
+  console.log('filteredBookmarks', filteredBookmarks);
 
   return (
     <div className="max-w-6xl mx-auto px-2 sm:px-4">
@@ -151,22 +173,34 @@ const Dashboard = ({ user }) => {
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {filteredBookmarks.map((bookmark) => (
             <div key={bookmark._id} className="card hover:shadow-lg transition-shadow flex flex-col h-full">
+              {/* Header with title and actions */}
               <div className="flex justify-between items-start mb-3">
-                <h3 className="font-semibold text-gray-900 line-clamp-2">
+                <h3 className="font-semibold text-gray-900 line-clamp-2 flex-1 mr-2">
                   {bookmark.title || 'Untitled'}
                 </h3>
-                <button
-                  onClick={() => handleDeleteBookmark(bookmark._id)}
-                  className="text-gray-400 hover:text-red-600 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex items-center space-x-1 flex-shrink-0">
+                  <button
+                    onClick={() => handleEditBookmark(bookmark)}
+                    className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                    title="Edit bookmark"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteBookmark(bookmark._id)}
+                    className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                    title="Delete bookmark"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                 {bookmark.url}
               </p>
 
+              {/* Tags */}
               {bookmark.tag && bookmark.tag.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
                   {bookmark.tag.map((tag, index) => (
@@ -180,40 +214,64 @@ const Dashboard = ({ user }) => {
                 </div>
               )}
 
-              <div className="flex justify-between items-center">
-                <a
-                  href={bookmark.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-600 hover:text-primary-700 text-sm flex items-center space-x-1"
-                >
-                  <span>Visit</span>
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-                <div className="text-xs text-gray-500 flex items-center space-x-1">
-                  <Clock className="h-3 w-3" />
-                  <span>
-                    {new Date(bookmark.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 text-xs">
-                  <span
-                    className={`px-2 py-1 rounded-full ${bookmark.reminded ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                      }`}
+              {/* Footer with actions and date */}
+              <div className="mt-auto">
+                <div className="flex justify-between items-center mb-2">
+                  <a
+                    href={bookmark.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-600 hover:text-primary-700 text-sm flex items-center space-x-1"
                   >
-                    {bookmark.reminded ? 'Sent' : 'Pending'}
-                  </span>
+                    <span>Visit</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <div className="text-xs text-gray-500 flex items-center space-x-1">
+                    <Clock className="h-3 w-3" />
+                    <span>
+                      {new Date(bookmark.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
 
+                {/* Reminder status and actions */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`px-2 py-1 rounded-full ${bookmark.reminded
+                        ? 'bg-green-100 text-green-700'
+                        : bookmark.remindAt
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-gray-100 text-gray-600'
+                        }`}
+                    >
+                      {bookmark.reminded
+                        ? `Sent at ${new Date(bookmark.remindAt).toLocaleString()}`
+                        : bookmark.remindAt
+                          ? `Scheduled for ${new Date(bookmark.remindAt).toLocaleString()}`
+                          : 'No Reminder'
+                      }
+                    </span>
+
+                    {bookmark.remindAt && !bookmark.reminded && (
+                      <span className="text-gray-500">
+                        {new Date(bookmark.remindAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Remind Again button - only show if reminder was sent */}
                   {bookmark.reminded && (
                     <button
-                      onClick={() => handleReschedule(bookmark)}
-                      className="text-primary-600 hover:text-primary-800 underline ml-2"
+                      onClick={() => handleRemindAgain(bookmark)}
+                      className="text-primary-600 hover:text-primary-800 underline flex items-center space-x-1"
+                      title="Set new reminder"
                     >
-                      Remind Again?
+                      <Bell className="h-3 w-3" />
+                      <span>Remind Again</span>
                     </button>
                   )}
                 </div>
-
               </div>
             </div>
           ))}
