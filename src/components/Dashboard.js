@@ -21,7 +21,6 @@ const Dashboard = ({ user }) => {
   const fetchBookmarks = async () => {
     try {
       const data = await getBookmarks();
-      console.log('data', data);
 
       if (data.success) {
         setBookmarks(data.bookmarks);
@@ -66,7 +65,19 @@ const Dashboard = ({ user }) => {
     );
   }
 
-  console.log('filteredBookmarks', filteredBookmarks);
+  // Helper to format UTC datetime to local datetime string
+  const formatLocalDateTime = (utcString) => {
+    if (!utcString) return '';
+    const date = new Date(utcString);
+    return date.toLocaleString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   // Handle "Remind Again" - only updates reminder time
   const handleRemindAgain = (bookmark) => {
@@ -75,28 +86,23 @@ const Dashboard = ({ user }) => {
     params.set('title', bookmark.title || '');
     params.set('tag', Array.isArray(bookmark.tag) ? bookmark.tag.join(',') : '');
     params.set('id', bookmark._id);
-    params.set('mode', 'remind'); // Special flag for remind mode
+    params.set('mode', 'remind');
 
     navigate(`/add-bookmark?${params.toString()}`);
   };
 
   // Handle "Edit Bookmark" - allows editing all fields
   const handleEditBookmark = (bookmark) => {
-    console.log('bookmark', bookmark);
-
     const params = new URLSearchParams();
     params.set('url', bookmark.url);
     params.set('title', bookmark.title || '');
     params.set('tag', Array.isArray(bookmark.tag) ? bookmark.tag.join(',') : '');
     params.set('id', bookmark._id);
-    params.set('mode', 'edit'); // Special flag for edit mode
+    params.set('mode', 'edit');
     params.set('remindAt', bookmark.remindAt ? new Date(bookmark.remindAt).toISOString() : '');
-    console.log('params', params);
 
     navigate(`/add-bookmark?${params.toString()}`);
   };
-
-  console.log('filteredBookmarks', filteredBookmarks);
 
   return (
     <div className="max-w-6xl mx-auto px-2 sm:px-4">
@@ -235,8 +241,8 @@ const Dashboard = ({ user }) => {
                 </div>
 
                 {/* Reminder status and actions */}
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-2">
+                <div className="flex flex-col gap-2 text-xs">
+                  <div className="flex items-center justify-between">
                     <span
                       className={`px-2 py-1 rounded-full ${bookmark.reminded
                         ? 'bg-green-100 text-green-700'
@@ -246,30 +252,34 @@ const Dashboard = ({ user }) => {
                         }`}
                     >
                       {bookmark.reminded
-                        ? `Sent at ${new Date(bookmark.remindAt).toLocaleString()}`
+                        ? `✓ Sent`
                         : bookmark.remindAt
-                          ? `Scheduled for ${new Date(bookmark.remindAt).toLocaleString()}`
+                          ? `⏰ Scheduled`
                           : 'No Reminder'
                       }
                     </span>
 
-                    {bookmark.remindAt && !bookmark.reminded && (
-                      <span className="text-gray-500">
-                        {new Date(bookmark.remindAt).toLocaleDateString()}
-                      </span>
+                    {/* Remind Again button - only show if reminder was sent */}
+                    {bookmark.reminded && (
+                      <button
+                        onClick={() => handleRemindAgain(bookmark)}
+                        className="text-primary-600 hover:text-primary-800 underline flex items-center space-x-1"
+                        title="Set new reminder"
+                      >
+                        <Bell className="h-3 w-3" />
+                        <span>Remind Again</span>
+                      </button>
                     )}
                   </div>
 
-                  {/* Remind Again button - only show if reminder was sent */}
-                  {bookmark.reminded && (
-                    <button
-                      onClick={() => handleRemindAgain(bookmark)}
-                      className="text-primary-600 hover:text-primary-800 underline flex items-center space-x-1"
-                      title="Set new reminder"
-                    >
-                      <Bell className="h-3 w-3" />
-                      <span>Remind Again</span>
-                    </button>
+                  {/* Show reminder time */}
+                  {bookmark.remindAt && (
+                    <div className="text-gray-600 text-xs">
+                      {bookmark.reminded ? 'Sent at: ' : 'Scheduled for: '}
+                      <span className="font-medium">
+                        {formatLocalDateTime(bookmark.remindAt)}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -281,4 +291,4 @@ const Dashboard = ({ user }) => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

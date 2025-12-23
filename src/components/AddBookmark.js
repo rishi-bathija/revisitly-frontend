@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Calendar, Clock, Edit } from 'lucide-react';
 import { addBookmark, updateBookmark } from '../utils/api';
-import { getISTISOString } from '../utils/utctoist';
 
 const AddBookmark = ({ user }) => {
   const navigate = useNavigate();
@@ -11,23 +10,40 @@ const AddBookmark = ({ user }) => {
 
   const params = new URLSearchParams(location.search);
 
-  console.log('params at addbookmark', params);
+  // Helper function to convert UTC datetime to local datetime-local format
+  const utcToLocalDatetime = (utcString) => {
+    if (!utcString) return '';
+    const date = new Date(utcString);
+    // Get local time components
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
-  // Fix the form initialization - handle remindAt properly
+  // Helper function to convert local datetime-local to UTC ISO string
+  const localDatetimeToUTC = (localDatetime) => {
+    if (!localDatetime) return '';
+    // Create date object from local datetime string
+    // This preserves the local timezone
+    const date = new Date(localDatetime);
+    return date.toISOString();
+  };
+
   const [formData, setFormData] = useState({
     url: params.get('url') || '',
     title: params.get('title') || '',
     tag: params.get('tag') || '',
-    // Fix: Convert UTC to local datetime-local format for display
-    remindAt: params.get('remindAt')
-      ? new Date(params.get('remindAt')).toISOString().slice(0, 16)
+    // Convert UTC from params to local datetime for display
+    remindAt: params.get('remindAt') 
+      ? utcToLocalDatetime(params.get('remindAt'))
       : ''
   });
 
-  console.log('formData', formData);
-
   const bookmarkId = params.get('id');
-  const mode = params.get('mode'); // 'remind' or 'edit'
+  const mode = params.get('mode');
 
   const isRemindMode = mode === 'remind';
   const isEditMode = mode === 'edit';
@@ -50,43 +66,33 @@ const AddBookmark = ({ user }) => {
     setSuccess('');
 
     try {
-      // Fix: Only convert to UTC when we have a datetime value
-      let remindAtUTC = formData.remindAt ? new Date(formData.remindAt).toISOString() : '';
+      // Convert local datetime to UTC ISO string for backend
+      let remindAtUTC = formData.remindAt ? localDatetimeToUTC(formData.remindAt) : '';
 
       let bookmarkData;
       let data;
 
       if (isNewBookmark) {
-        // Adding new bookmark
         bookmarkData = {
-          ...formData,
-          remindAt: remindAtUTC,
-          tag: formData.tag ? formData.tag.split(',').map(tag => tag.trim()) : []
+          url: formData.url,
+          title: formData.title,
+          tag: formData.tag ? formData.tag.split(',').map(tag => tag.trim()) : [],
+          remindAt: remindAtUTC
         };
         data = await addBookmark(bookmarkData);
       } else if (isRemindMode) {
-        // Remind mode - only update reminder
         bookmarkData = {
           remindAt: remindAtUTC
         };
         data = await updateBookmark(bookmarkId, bookmarkData);
       } else if (isEditMode) {
-        console.log('inside isedit');
-
-        // Fix: Remove the double conversion - formData.remindAt is already in local format
-        // Just convert directly to UTC for sending to server
-        console.log('remindAtUTC for edit mode', remindAtUTC);
-
         bookmarkData = {
           url: formData.url,
           title: formData.title,
           tag: formData.tag ? formData.tag.split(',').map(tag => tag.trim()) : [],
-          remindAt: remindAtUTC // Use UTC directly, no double conversion
+          remindAt: remindAtUTC
         };
-        console.log('edit mode bookmarkdata', bookmarkData, bookmarkId);
-
         data = await updateBookmark(bookmarkId, bookmarkData);
-        console.log('data', data);
       }
 
       if (data.success) {
@@ -126,11 +132,10 @@ const AddBookmark = ({ user }) => {
   const getDefaultReminderTime = () => {
     const now = new Date();
     now.setHours(now.getHours() + 24); // Default to tomorrow
-    // Return in datetime-local format
-    return now.toISOString().slice(0, 16);
+    // Return in local datetime format
+    return utcToLocalDatetime(now.toISOString());
   };
 
-  // Get page title and description based on mode
   const getPageContent = () => {
     if (isNewBookmark) {
       return {
@@ -154,8 +159,6 @@ const AddBookmark = ({ user }) => {
   };
 
   const pageContent = getPageContent();
-
-  console.log('formdata.remindAt', formData.remindAt);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -312,7 +315,7 @@ const AddBookmark = ({ user }) => {
               />
             </div>
             <p className="text-sm text-gray-500 mt-1">
-              When would you like to be reminded about this bookmark?
+              When would you like to be reminded about this bookmark? (Your local time)
             </p>
           </div>
 
@@ -330,7 +333,7 @@ const AddBookmark = ({ user }) => {
               onClick={() => {
                 const nextWeek = new Date();
                 nextWeek.setDate(nextWeek.getDate() + 7);
-                setFormData({ ...formData, remindAt: nextWeek.toISOString().slice(0, 16) });
+                setFormData({ ...formData, remindAt: utcToLocalDatetime(nextWeek.toISOString()) });
               }}
               className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors"
             >
