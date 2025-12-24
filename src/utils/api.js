@@ -58,6 +58,9 @@ export const socialLogin = (idToken) =>
 export const getBookmarks = () =>
   apiCall('/api/bookmarks/get');
 
+export const getBookmarkById = (id) =>
+  apiCall(`/api/bookmarks/get/${id}`);
+
 export const addBookmark = (bookmarkData) =>
   apiCall('/api/bookmarks/add', {
     method: 'POST',

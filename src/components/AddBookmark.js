@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Calendar, Clock, Edit } from 'lucide-react';
-import { addBookmark, updateBookmark } from '../utils/api';
+import { addBookmark, getBookmarkById, updateBookmark } from '../utils/api';
 
 const AddBookmark = ({ user }) => {
   const navigate = useNavigate();
@@ -32,6 +32,17 @@ const AddBookmark = ({ user }) => {
     return date.toISOString();
   };
 
+  // Helper to get current local datetime in `yyyy-MM-ddTHH:mm` format for `min` attr
+  const getLocalNowForMin = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const [formData, setFormData] = useState({
     url: params.get('url') || '',
     title: params.get('title') || '',
@@ -59,6 +70,37 @@ const AddBookmark = ({ user }) => {
     });
   };
 
+  useEffect(() => {
+    const fetchBookmark = async () => {
+      if (
+        bookmarkId &&
+        (isRemindMode || isEditMode) &&
+        !params.get('url')
+      ) {
+        try {
+          console.log('fetchbookmark called');
+          
+          const res = await getBookmarkById(bookmarkId);
+
+          if (res.success) {
+            const b = res.bookmark;
+
+            setFormData({
+              url: b.url || '',
+              title: b.title || '',
+              tag: b.tag?.join(',') || '',
+              remindAt: b.remindAt ? utcToLocalDatetime(b.remindAt) : ''
+            });
+          }
+        } catch (err) {
+          setError("Failed to load bookmark details");
+        }
+      }
+    };
+
+    fetchBookmark();
+  }, [bookmarkId, isRemindMode, isEditMode]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -67,6 +109,17 @@ const AddBookmark = ({ user }) => {
 
     try {
       // Convert local datetime to UTC ISO string for backend
+      // Validate remindAt is not in the past (when provided)
+      if (formData.remindAt) {
+        const selected = new Date(formData.remindAt);
+        const now = new Date();
+        if (selected <= now) {
+          setError('Reminder time must be in the future.');
+          setLoading(false);
+          return;
+        }
+      }
+
       let remindAtUTC = formData.remindAt ? localDatetimeToUTC(formData.remindAt) : '';
 
       let bookmarkData;
@@ -310,7 +363,7 @@ const AddBookmark = ({ user }) => {
                 name="remindAt"
                 value={formData.remindAt}
                 onChange={handleInputChange}
-                min={new Date().toISOString().slice(0, 16)}
+                min={getLocalNowForMin()}
                 className="input-field pl-10"
               />
             </div>
