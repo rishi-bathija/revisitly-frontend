@@ -1,15 +1,25 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../utils/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { Mail, Lock, Eye, EyeOff, Bookmark } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { loginUser, signupUser, socialLogin } from '../utils/api';
 
 const Login = () => {
-  const { setUser } = useAuth();
+  const { user, setUser } = useAuth();
 
   const navigate = useNavigate();
+
+  const location = useLocation();
+
+  const fromReminder = location.state?.fromReminder;
+  const reminderToken = location.state?.reminderToken;
+
+  console.log('fromreminder', fromReminder);
+  console.log('remindertoken', reminderToken);
+  
+
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,6 +29,35 @@ const Login = () => {
     password: ''
   });
   const [error, setError] = useState('');
+
+  if (user && fromReminder) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="card max-w-md w-full text-center">
+          <h2 className="text-xl font-semibold mb-2">
+            You’re already logged in
+          </h2>
+
+          <p className="text-gray-600 mb-4">
+            You are logged in as <b>{user.email}</b>.
+            <br />
+            To continue with this reminder, please switch accounts.
+          </p>
+
+          <button
+            onClick={async () => {
+              await signOut(auth);
+              localStorage.clear();
+              setUser(null);
+            }}
+            className="btn-primary w-full"
+          >
+            Switch account
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleInputChange = (e) => {
     setFormData({
@@ -52,7 +91,12 @@ const Login = () => {
           };
           localStorage.setItem('user', JSON.stringify(userObj));
           setUser(userObj);
-          navigate('/dashboard');
+          if (fromReminder && reminderToken) {
+            navigate(`/remind/${reminderToken}`);
+          } else {
+            navigate('/dashboard');
+          }
+
         }
         else {
           setError('Registration successful! Please log in.');
@@ -90,7 +134,11 @@ const Login = () => {
           email: result.user.email,
           profile: result.user.photoURL
         });
-        navigate('/dashboard');
+        if (fromReminder && reminderToken) {
+          navigate(`/remind/${reminderToken}`);
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(data.message || 'Google login failed');
       }

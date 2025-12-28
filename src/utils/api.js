@@ -5,7 +5,8 @@ const API_BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:3001';
 export const apiCall = async (endpoint, options = {}) => {
   console.log('endpoint', endpoint);
 
-  const token = await getAuthToken();
+  const skipAuth = options.skipAuth === true;
+  const token = skipAuth ? null : await getAuthToken();
 
   const defaultHeaders = {
     'Content-Type': 'application/json',
@@ -19,6 +20,8 @@ export const apiCall = async (endpoint, options = {}) => {
       ...options.headers,
     },
   };
+
+  delete config.skipAuth;
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
@@ -67,11 +70,30 @@ export const addBookmark = (bookmarkData) =>
     body: JSON.stringify(bookmarkData),
   });
 
-export const updateBookmark = (bookmarkId, bookmarkData) =>
-  apiCall(`/api/bookmarks/update/${bookmarkId}`, {
+export const updateBookmark = (bookmarkId, bookmarkData, token) => {
+  let endpoint = `/api/bookmarks/update/${bookmarkId}`;
+  if (token) {
+    endpoint += `?token=${encodeURIComponent(token)}`;
+  }
+  return apiCall(endpoint, {
     method: 'PATCH',
     body: JSON.stringify(bookmarkData),
-  })
+  });
+};
+
+export const updateReminderFromEmail = ({ token, remindAt }) =>
+  apiCall('/api/bookmarks/remind-by-email', {
+    method: 'POST',
+    body: JSON.stringify({ token, remindAt }),
+    skipAuth: true,
+  });
+
+export const verifyReminderToken = (token) =>
+  apiCall('/api/bookmarks/verify-reminder-token', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+    skipAuth: true,
+  });
 
 export const deleteBookmark = (id) =>
   apiCall(`/api/bookmarks/delete/${id}`, {

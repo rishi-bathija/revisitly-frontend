@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Calendar, Clock, Edit } from 'lucide-react';
-import { addBookmark, getBookmarkById, updateBookmark } from '../utils/api';
+import { addBookmark, getBookmarkById, updateBookmark, updateReminderFromEmail } from '../utils/api';
 
 const AddBookmark = ({ user }) => {
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ const AddBookmark = ({ user }) => {
     title: params.get('title') || '',
     tag: params.get('tag') || '',
     // Convert UTC from params to local datetime for display
-    remindAt: params.get('remindAt') 
+    remindAt: params.get('remindAt')
       ? utcToLocalDatetime(params.get('remindAt'))
       : ''
   });
@@ -74,12 +74,11 @@ const AddBookmark = ({ user }) => {
     const fetchBookmark = async () => {
       if (
         bookmarkId &&
-        (isRemindMode || isEditMode) &&
-        !params.get('url')
+        (isRemindMode || isEditMode)
       ) {
         try {
           console.log('fetchbookmark called');
-          
+
           const res = await getBookmarkById(bookmarkId);
 
           if (res.success) {
@@ -134,10 +133,7 @@ const AddBookmark = ({ user }) => {
         };
         data = await addBookmark(bookmarkData);
       } else if (isRemindMode) {
-        bookmarkData = {
-          remindAt: remindAtUTC
-        };
-        data = await updateBookmark(bookmarkId, bookmarkData);
+        data = await updateBookmark(bookmarkId, { remindAt: remindAtUTC });
       } else if (isEditMode) {
         bookmarkData = {
           url: formData.url,
@@ -275,6 +271,7 @@ const AddBookmark = ({ user }) => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+
           {/* URL Field */}
           <div>
             <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
