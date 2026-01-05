@@ -98,4 +98,15 @@ export const verifyReminderToken = (token) =>
 export const deleteBookmark = (id) =>
   apiCall(`/api/bookmarks/delete/${id}`, {
     method: 'POST',
-  }); 
+  });
+
+export const trackBookmarkOpen = (id) =>
+  apiCall(`/api/bookmarks/track/${id}`, {
+    method: 'POST',
+  });
+
+export const updateSmartReminder = (id, settings) =>
+  apiCall(`/api/bookmarks/smart-reminder/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(settings),
+  });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, ExternalLink, Trash2, Clock, Search, Filter, Edit, Bell } from 'lucide-react';
+import { Plus, ExternalLink, Trash2, Clock, Search, Filter, Edit, Bell, Repeat} from 'lucide-react';
 import { getBookmarks, deleteBookmark } from '../utils/api';
 
 const Dashboard = ({ user }) => {
@@ -241,25 +241,45 @@ const Dashboard = ({ user }) => {
                 </div>
 
                 {/* Reminder status and actions */}
+                {/* Reminder status and actions */}
                 <div className="flex flex-col gap-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`px-2 py-1 rounded-full ${bookmark.reminded
-                        ? 'bg-green-100 text-green-700'
-                        : bookmark.remindAt
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-gray-100 text-gray-600'
-                        }`}
-                    >
-                      {bookmark.reminded
-                        ? `✓ Sent`
-                        : bookmark.remindAt
-                          ? `⏰ Scheduled`
-                          : 'No Reminder'
-                      }
-                    </span>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Main reminder status */}
+                      <span
+                        className={`px-2 py-1 rounded-full ${bookmark.reminded
+                          ? 'bg-green-100 text-green-700'
+                          : bookmark.remindAt
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-gray-100 text-gray-600'
+                          }`}
+                      >
+                        {bookmark.reminded
+                          ? `✓ Sent`
+                          : bookmark.remindAt
+                            ? `⏰ Scheduled`
+                            : 'No Reminder'
+                        }
+                      </span>
 
-                    {/* Remind Again button - only show if reminder was sent */}
+                      {/* NEW: Repeat badge */}
+                      {bookmark.repeatType && bookmark.repeatType !== 'none' && (
+                        <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1">
+                          <Repeat className="h-3 w-3" />
+                          {bookmark.repeatType.charAt(0).toUpperCase() + bookmark.repeatType.slice(1)}
+                        </span>
+                      )}
+
+                      {/* NEW: Smart follow-up badge */}
+                      {bookmark.smartFollowUp?.enabled && (
+                        <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
+                          <Bell className="h-3 w-3" />
+                          Follow-up ({bookmark.smartFollowUp.daysDelay}d)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Remind Again button */}
                     {bookmark.reminded && (
                       <button
                         onClick={() => handleRemindAgain(bookmark)}
@@ -279,6 +299,13 @@ const Dashboard = ({ user }) => {
                       <span className="font-medium">
                         {formatLocalDateTime(bookmark.remindAt)}
                       </span>
+                    </div>
+                  )}
+
+                  {/* NEW: Show next reminder for repeating bookmarks */}
+                  {bookmark.repeatType && bookmark.repeatType !== 'none' && bookmark.remindAt && (
+                    <div className="text-gray-500 text-xs italic">
+                      Next: {formatLocalDateTime(bookmark.remindAt)}
                     </div>
                   )}
                 </div>

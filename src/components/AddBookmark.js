@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Calendar, Clock, Edit } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Clock, Edit, Repeat, Bell } from 'lucide-react';
 import { addBookmark, getBookmarkById, updateBookmark, updateReminderFromEmail } from '../utils/api';
 
 const AddBookmark = ({ user }) => {
@@ -50,7 +50,10 @@ const AddBookmark = ({ user }) => {
     // Convert UTC from params to local datetime for display
     remindAt: params.get('remindAt')
       ? utcToLocalDatetime(params.get('remindAt'))
-      : ''
+      : '',
+    repeatType: 'none',
+    smartFollowUpEnabled: false,
+    smartFollowUpDays: 3,
   });
 
   const bookmarkId = params.get('id');
@@ -64,9 +67,10 @@ const AddBookmark = ({ user }) => {
   const [success, setSuccess] = useState('');
 
   const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -88,7 +92,10 @@ const AddBookmark = ({ user }) => {
               url: b.url || '',
               title: b.title || '',
               tag: b.tag?.join(',') || '',
-              remindAt: b.remindAt ? utcToLocalDatetime(b.remindAt) : ''
+              remindAt: b.remindAt ? utcToLocalDatetime(b.remindAt) : '',
+              repeatType: b.repeatType || 'none',
+              smartFollowUpEnabled: b.smartFollowUp?.enabled || false,
+              smartFollowUpDays: b.smartFollowUp?.daysDelay || 3,
             });
           }
         } catch (err) {
@@ -129,7 +136,12 @@ const AddBookmark = ({ user }) => {
           url: formData.url,
           title: formData.title,
           tag: formData.tag ? formData.tag.split(',').map(tag => tag.trim()) : [],
-          remindAt: remindAtUTC
+          remindAt: remindAtUTC,
+          repeatType: formData.repeatType,
+          smartFollowUp: {
+            enabled: formData.smartFollowUpEnabled,
+            daysDelay: parseInt(formData.smartFollowUpDays) || 3
+          }
         };
         data = await addBookmark(bookmarkData);
       } else if (isRemindMode) {
@@ -139,7 +151,12 @@ const AddBookmark = ({ user }) => {
           url: formData.url,
           title: formData.title,
           tag: formData.tag ? formData.tag.split(',').map(tag => tag.trim()) : [],
-          remindAt: remindAtUTC
+          remindAt: remindAtUTC,
+          repeatType: formData.repeatType,
+          smartFollowUp: {
+            enabled: formData.smartFollowUpEnabled,
+            daysDelay: parseInt(formData.smartFollowUpDays) || 3
+          }
         };
         data = await updateBookmark(bookmarkId, bookmarkData);
       }
@@ -161,7 +178,10 @@ const AddBookmark = ({ user }) => {
             url: '',
             title: '',
             tag: '',
-            remindAt: ''
+            remindAt: '',
+            repeatType: 'none',
+            smartFollowUpEnabled: false,
+            smartFollowUpDays: 3,
           });
         }
 
@@ -398,6 +418,88 @@ const AddBookmark = ({ user }) => {
             </button>
           </div>
 
+          {/* NEW: Smart Reminder Settings */}
+          {formData.remindAt && !isRemindMode && (
+            <div className="border-t pt-6 space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Repeat className="h-5 w-5 text-primary-600" />
+                  Smart Reminder Options
+                </h3>
+
+                {/* Repeat Type */}
+                <div className="mb-4">
+                  <label htmlFor="repeatType" className="block text-sm font-medium text-gray-700 mb-2">
+                    Repeat Reminder
+                  </label>
+                  <select
+                    id="repeatType"
+                    name="repeatType"
+                    value={formData.repeatType}
+                    onChange={handleInputChange}
+                    className="input-field"
+                  >
+                    <option value="none">No repeat (one-time)</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                  </select>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {formData.repeatType === 'none' && 'Reminder will be sent once'}
+                    {formData.repeatType === 'daily' && 'Reminder will repeat every day'}
+                    {formData.repeatType === 'weekly' && 'Reminder will repeat every week'}
+                  </p>
+                </div>
+
+                {/* Smart Follow-up */}
+                <div className="border-t pt-4">
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      id="smartFollowUpEnabled"
+                      name="smartFollowUpEnabled"
+                      checked={formData.smartFollowUpEnabled}
+                      onChange={handleInputChange}
+                      className="mt-1 h-4 w-4 text-primary-600 rounded focus:ring-primary-500"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="smartFollowUpEnabled" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <Bell className="h-4 w-4" />
+                        Smart Follow-up
+                      </label>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Send an additional reminder if you don't open the bookmark
+                      </p>
+
+                      {formData.smartFollowUpEnabled && (
+                        <div className="mt-3">
+                          <label htmlFor="smartFollowUpDays" className="block text-sm text-gray-600 mb-1">
+                            Follow-up after:
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              id="smartFollowUpDays"
+                              name="smartFollowUpDays"
+                              min="1"
+                              max="30"
+                              value={formData.smartFollowUpDays}
+                              onChange={handleInputChange}
+                              className="input-field w-20"
+                            />
+                            <span className="text-sm text-gray-600">days of inactivity</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            If you don't open the bookmark within {formData.smartFollowUpDays} {formData.smartFollowUpDays === 1 ? 'day' : 'days'}, we'll send a follow-up reminder
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Submit Button */}
           <div className="flex space-x-4 pt-4">
             <button
@@ -458,7 +560,8 @@ const AddBookmark = ({ user }) => {
               <li>• Add descriptive titles to easily find your bookmarks later</li>
               <li>• Use tags to organize content by topic or project</li>
               <li>• Set reminders for time-sensitive content or follow-ups</li>
-              <li>• You can always edit or delete bookmarks from your dashboard</li>
+              <li>• Use repeat reminders for daily/weekly habits or recurring content</li>
+              <li>• Enable smart follow-up to ensure you don't miss important bookmarks</li>
             </>
           )}
         </ul>

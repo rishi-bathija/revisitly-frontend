@@ -14,6 +14,7 @@ import Dashboard from './components/Dashboard';
 import AddBookmark from './components/AddBookmark';
 import EmailReminder from './components/EmailReminder';
 import LoadingSpinner from './components/LoadingSpinner';
+import TrackBookmark from './components/TrackBookmark';
 
 /* -------------------- */
 /* Layout INSIDE Router */
@@ -54,6 +55,7 @@ const AppLayout = () => {
 
           {/* 🌍 PUBLIC EMAIL REMINDER PAGE */}
           <Route path="/remind/:token" element={<EmailReminder />} />
+          <Route path="/track/:id" element={<TrackBookmark />} />
         </Routes>
       </main>
     </div>
